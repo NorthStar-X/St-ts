@@ -1,0 +1,32 @@
+# this code was created for an online wine reseller that had issues forecasting the effectiveness of their promotions. Please review using your own data and testing with your own details.
+
+library(forecast)
+library(tidyverse)
+
+# All my data are in a dataframe, 'wine_data'.  Replace yours with your own data and name
+wine_data <- read_csv("wine_data.csv")
+
+# Prepare the data
+wine_data <- wine_data %>%
+  mutate(date = as.Date(promo_date))
+
+# Create a time series object
+wine_ts <- wine_data %>%
+  group_by(date) %>%
+  summarize(sales = sum(promo_items_value)) %>%
+  ts(start = c(2017, 1), frequency = 12)
+
+# Fit the SARIMA model
+sarima_model <- auto.arima(wine_ts, seasonal = TRUE)
+
+# Summary of the model
+summary(sarima_model)
+
+# Make predictions. These will very much depend on the seasonality selected.
+future_dates <- seq(max(wine_data$date), by = "month", length.out = 12)
+future_sales <- forecast(sarima_model, h = length(future_dates))
+
+# Visualize the results
+autoplot(future_sales) +
+  geom_line(aes(x = date, y = sales), data = wine_data) +
+  labs(x = "Date", y = "Sales", title = "Wine Sales Forecast")
